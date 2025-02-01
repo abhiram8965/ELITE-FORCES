@@ -1,0 +1,49 @@
+import streamlit as st
+import torch
+from diffusers import StableDiffusionPipeline
+from PIL import Image
+
+# Load the Stable Diffusion model once to avoid reloading it every time the app is refreshed
+@st.cache_resource
+def load_model():
+    # Load the Stable Diffusion model
+    model = StableDiffusionPipeline.from_pretrained("CompVis/stable-diffusion-v1-4-original")
+
+    # Check if GPU is available and move the model to GPU if possible
+    if torch.cuda.is_available():
+        model.to("cuda")
+        st.write("Using GPU for faster generation.")
+    else:
+        st.write("Using CPU for generation.")
+    
+    return model
+
+# Function to generate clothing image from the prompt
+def generate_image(prompt, model):
+    with st.spinner("Generating image..."):
+        # Generate the image from the prompt
+        result = model(prompt)
+        generated_image = result.images[0]
+        return generated_image
+
+# Streamlit application interface
+def app():
+    st.title("Clothing Image Generator Using Stable Diffusion")
+    st.write("Enter a clothing description and generate a corresponding image.")
+
+    # Input prompt for clothing description
+    prompt = st.text_input("Enter a clothing description:", "A stylish black leather jacket with gold accents.")
+
+    # Load model once
+    model = load_model()
+
+    if st.button("Generate Image"):
+        if prompt:
+            generated_image = generate_image(prompt, model)
+st.image(generated_image, caption="Generated Clothing Image", use_column_width=True)
+            st.download_button("Download Image", generated_image, "clothing_image.png", "image/png")
+        else:
+            st.warning("Please enter a valid clothing description!")
+
+if _name_ == "_main_":
+    app()
